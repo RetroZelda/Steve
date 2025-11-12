@@ -13,15 +13,16 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public class OpenAIClient {
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     private static final int MAX_RETRIES = 3;
     private static final int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
     private final HttpClient client;
     private final String apiKey;
+    private final String url;
 
     public OpenAIClient() {
         this.apiKey = SteveConfig.OPENAI_API_KEY.get();
+        this.url = SteveConfig.OPENAI_API_URL.get();
         this.client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
@@ -36,7 +37,7 @@ public class OpenAIClient {
         JsonObject requestBody = buildRequestBody(systemPrompt, userPrompt);
 
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(OPENAI_API_URL))
+            .uri(URI.create(this.url))
             .header("Authorization", "Bearer " + apiKey)
             .header("Content-Type", "application/json")
             .timeout(Duration.ofSeconds(60))

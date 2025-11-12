@@ -19,8 +19,20 @@ public class ResponseParser {
             return null;
         }
 
+        String cleanedResponse = response;
         try {
-            String jsonString = extractJSON(response);
+            String thinkContent = "";
+
+            java.util.regex.Pattern thinkPattern = java.util.regex.Pattern.compile("<think>(.*?)</think>", java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher thinkMatcher = thinkPattern.matcher(response);
+
+            if (thinkMatcher.find()) {
+                thinkContent = thinkMatcher.group(1).trim();           // Extract content inside <think>
+                cleanedResponse = thinkMatcher.replaceFirst("").trim(); // Remove entire <think>...</think>
+                SteveMod.LOGGER.info("Thoughts: {}", thinkContent);
+            }
+
+            String jsonString = extractJSON(cleanedResponse);
             
             JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
             
@@ -47,7 +59,7 @@ public class ResponseParser {
             return new ParsedResponse(reasoning, plan, tasks);
             
         } catch (Exception e) {
-            SteveMod.LOGGER.error("Failed to parse AI response: {}", response, e);
+            SteveMod.LOGGER.error("Failed to parse AI response: {}", cleanedResponse, e);
             return null;
         }
     }

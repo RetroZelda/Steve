@@ -65,30 +65,63 @@ public class ResponseParser {
     }
 
     private static String extractJSON(String response) {
+        if (response == null || response.isBlank()) {
+            return "";
+        }
+
         String cleaned = response.trim();
-        
+
         if (cleaned.startsWith("```json")) {
             cleaned = cleaned.substring(7);
         } else if (cleaned.startsWith("```")) {
             cleaned = cleaned.substring(3);
         }
-        
         if (cleaned.endsWith("```")) {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
-        
         cleaned = cleaned.trim();
-        
-        // Fix common JSON formatting issues
-        cleaned = cleaned.replaceAll("\\n\\s*", " ");
-        
-        // Fix missing commas between array/object elements (common AI mistake)
-        cleaned = cleaned.replaceAll("}\\s+\\{", "},{");
-        cleaned = cleaned.replaceAll("}\\s+\\[", "},[");
-        cleaned = cleaned.replaceAll("]\\s+\\{", "],{");
-        cleaned = cleaned.replaceAll("]\\s+\\[", "],[");
-        
-        return cleaned;
+
+        StringBuilder jsonBuilder = new StringBuilder();
+        int length = cleaned.length();
+        int braceLevel = 0;
+        int start = -1;
+
+        for (int i = 0; i < length; i++) {
+            char c = cleaned.charAt(i);
+
+            if (c == '{' && braceLevel == 0) {
+                braceLevel = 1;
+                start = i;
+                continue;
+            }
+
+            if (start != -1) {
+                if (c == '{') {
+                    braceLevel++;
+                } else if (c == '}') {
+                    braceLevel--;
+                    if (braceLevel == 0) {
+                        jsonBuilder.append(cleaned, start, i + 1);
+                        start = -1;
+                    }
+                }
+            }
+        }
+
+        String rawJson = jsonBuilder.toString();
+        if (rawJson.isEmpty()) {
+            return "";
+        }
+
+        rawJson = rawJson.replaceAll("\\s+", " ");
+
+        rawJson = rawJson.replaceAll("}\\s+\\{", "},{");
+        rawJson = rawJson.replaceAll("}\\s+\\[", "},[");
+        rawJson = rawJson.replaceAll("]\\s+\\{", "],{");
+        rawJson = rawJson.replaceAll("]\\s+\\[", "],[");
+        rawJson = rawJson.replaceAll("(\\{[^}\"]*?)\\s+([^\"\\s])", "$1,\"$2");
+
+        return rawJson.trim();
     }
 
     private static Task parseTask(JsonObject taskObj) {
